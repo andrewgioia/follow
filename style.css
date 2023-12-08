@@ -23,7 +23,7 @@ header {
   background: #fff;
   display: flex;
   flex-direction: column;
-  padding-bottom: 3rem;
+  height: 14rem;
   width: 100%;
 }
 
@@ -79,7 +79,7 @@ form {
   position: relative;
   width: 90%;
 }
-input[type="search"] {
+input[type="url"] {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'%3E%3C/circle%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'%3E%3C/line%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: 1.25rem 50%;
@@ -93,7 +93,7 @@ input[type="search"] {
   transition: box-shadow 150ms ease-in-out;
   width: 100%;
 }
-input[type="search"]:focus {
+input[type="url"]:focus {
   outline: none;
   box-shadow: inset 0 0.25rem 0 0 #f0eded, 0 0 0 1px #fff, 0 0 0 0.25rem #39b9e4;
 }
@@ -132,6 +132,8 @@ article {
 }
 
 aside {
+    max-height: calc(100vh - 16.5rem);
+    overflow: auto;
     width: 86%;
 }
 details {
@@ -151,12 +153,39 @@ details dl {
 details dl dt {
     margin: 0 0 0.5rem;
 }
+details dl dt del,
+details dl dt var {
+    align-items: center;
+    display: inline-flex;
+    flex-direction: row;
+    font-style: normal;
+}
+details dl dt del::after,
+details dl dt var::after {
+    background-repeat: no-repeat;
+    background-size: 1rem 1rem;
+    background-position: 100% 50%;
+    content: '';
+    display: block;
+    height: 1rem;
+    margin-left: 0.5rem;
+    width: 1rem;
+}
+details dl dt del::after {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 6h18'/%3E%3Cpath d='M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6'/%3E%3Cpath d='M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2'/%3E%3Cline x1='10' x2='10' y1='11' y2='17'/%3E%3Cline x1='14' x2='14' y1='11' y2='17'/%3E%3C/svg%3E");
+}
+details dl dt var::after {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2'/%3E%3Cpath d='M8.5 2h7'/%3E%3Cpath d='M7 16h10'/%3E%3C/svg%3E");
+}
 details dl dd {
     display: none;
     font-size: 0.875rem;
     line-height: 1.2rem;
     margin-left: 0;
     padding: 0 0 1rem 0.1rem;
+}
+details dl dd code {
+    font-size: 0.8rem;
 }
 details dl input[type="checkbox"] {
     display: none;
@@ -174,6 +203,7 @@ code {
     background: #fff;
     padding: 0.1rem 0.2rem;
     border-radius: 0.25rem;
+    white-space: nowrap;
 }
 
 h2 {
@@ -222,8 +252,35 @@ td {
   vertical-align: top;
   word-wrap: anywhere;
 }
+td:nth-child(2) {
+    line-height: 1.5rem;
+    padding: 0.8rem 1rem;
+}
+td:nth-child(2) a:hover {
+    text-decoration-color: transparent;
+}
+td b {
+    border: 1px solid #aaa;
+    border-right-width: 2px;
+    border-bottom-width: 2px;
+    border-radius: 0.25rem;
+    color: #555;
+    font-weight: 500;
+    line-height: 1;
+    margin-left: 0.5rem;
+    padding: 0 0.25rem;
+    transition: border-color 150ms ease-in-out, color 150ms ease-in-out;
+}
+td:nth-child(2) a:hover b {
+    border-color: #1a1a1a;
+    color: #1a1a1a;
+}
 tbody tr:nth-child(odd) td {
   background-color: #fff;
+}
+tbody td:last-child {
+    padding-left: 0;
+    width: 1rem;
 }
 caption {
   caption-side: bottom;

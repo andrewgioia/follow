@@ -1,5 +1,5 @@
 <?php
-class RedirectCheck
+class Follow
 {
     // constants
     const USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36";
@@ -139,44 +139,6 @@ class RedirectCheck
     {
         $last = end($this->path);
         return $last['url'];
-    }
-}
-
-// handle form submissions
-if (isset($_POST['url']))
-{
-    // check that we got a valid URL
-    $url = (filter_var(trim($_POST['url']), FILTER_VALIDATE_URL))
-         ? trim($_POST['url'])
-         : false;
-
-    // if so, start up the redirect checks
-    if ($url)
-    {
-        // make a request for this url and add to the path
-        $request = new RedirectCheck($url);
-        $code = '';
-
-        do {
-            // set the URL
-            $request->url = $url;
-
-            // make the curl request and update the path
-            $request->getHttpCode();
-
-            // end on an error
-            if ($request->error)
-            {
-                break;
-            }
-
-            // if we have a redirect to follow, update our working $url
-            $url = ($request->next) ? $request->next : false;
-
-            // update our code
-            $code = ($request->code) ? $request->code : false;
-
-        } while ($code != 200);
     }
 }
 ?>
