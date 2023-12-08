@@ -53,8 +53,23 @@ nav a {
 }
 
 h1 {
+    display: flex;
     font-size: 1.25rem;
+    font-weight: 800;
     margin: 0;
+}
+h1 span {
+    display: flex;
+    font-weight: 300;
+    text-transform: lowercase;
+    gap: 0.5rem;
+    margin-left: 0.5rem;
+}
+h1 span::before {
+    color: #aaa;
+    content: '//';
+    display: block;
+
 }
 
 form {
@@ -121,6 +136,7 @@ aside {
 }
 details {
     margin-bottom: 0.5rem;
+    padding-left: 0.15rem;
 }
 summary {
     cursor: pointer;

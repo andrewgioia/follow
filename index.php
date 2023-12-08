@@ -1,187 +1,6 @@
 <?php
-
-class RedirectCheck
-{
-    // constants
-    const USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36";
-    const ERROR_CURL_INIT = "Couldn't initialize a cURL handle";
-    const ERROR_CURL_CODE = "Could not curl_getinfo the HTTP code";
-    const ERROR_CURL_REDIRECT = "Could not curl_getinfo the redirect URL";
-
-    // properties
-    public string $url;
-    public string $next;
-    public int $code;
-    public int $step;
-    public bool $redirect;
-    public array $path;
-    public array $error;
-
-    // constructor
-    public function __construct(string $url)
-    {
-        $this->url = $url;
-        $this->next = '';
-        $this->code = 0;
-        $this->step = 1;
-        $this->redirect = false;
-        $this->error = [];
-        $this->path[$this->step] = [
-          'step' => $this->step,
-          'url' => $this->url,
-          'code' => null,
-          'next' => null ];
-    }
-
-    // create an error message
-    private function setError(array $error): void
-    {
-        $this->error = $error;
-    }
-
-    // add an entry to the URL path
-    private function addPath(int $step, array $path): void
-    {
-        $this->path[$step] = $path;
-    }
-
-    // update a path entry
-    public function updatePath(int $step, string $key, string $value): void
-    {
-        $this->path[$step][$key] = $value;
-    }
-
-    // create a curl request for a URL
-    public function getHttpCode()
-    {
-        // initate curl request
-        $ch = curl_init();
-        if (!$ch) {
-            $this->setError = ['type' => 'curl', 'message' => self::ERROR_CURL_INIT];
-            return false;
-        }
-
-        // set request headers and execute
-        $response = curl_setopt($ch, CURLOPT_URL, $this->url);
-        $response = curl_setopt($ch, CURLOPT_HEADER, true); // enable this for debugging
-        $response = curl_setopt($ch, CURLOPT_HTTPGET, true); // redundant but making sure it's a GET
-        $response = curl_setopt($ch, CURLOPT_NOBODY, false); // settings this to true was returning 405s
-        $response = curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
-        $response = curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); // return output instead of going to screen
-        $response = curl_setopt($ch, CURLOPT_TIMEOUT, 60);
-        $response = curl_setopt($ch, CURLOPT_USERAGENT, self::USER_AGENT);
-        $response = curl_exec($ch);
-
-        // check for a response
-        if (empty($response))
-        {
-            $this->setError(['type' => 'curl', 'message' => curl_error($ch)]);
-            curl_close($ch);
-        }
-        else
-        {
-            // get the http status code
-            if (curl_getinfo($ch, CURLINFO_HTTP_CODE))
-            {
-                $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                $this->code = ($code) ? $code : 0;
-                if ($code == 200) {
-                  $this->updatePath($this->step, 'code', $this->code);
-                  return true;
-                }
-            }
-            else
-            {
-                $this->code = 0;
-                $this->setError(['type' => 'curl', 'message' => self::ERROR_CURL_CODE]);
-                return false;
-            }
-
-            // get any redirect url to follow next
-            if (curl_getinfo($ch, CURLINFO_REDIRECT_URL))
-            {
-                $next = curl_getinfo($ch, CURLINFO_REDIRECT_URL);
-                $this->redirect = ($next) ? true : false;
-                $this->next = ($next) ? $next : '';
-            }
-            else
-            {
-                $this->redirect = false;
-                $this->next = '';
-            }
-
-            // close the session
-            curl_close($ch);
-
-            // update the current path
-            $this->updatePath($this->step, 'code', $this->code);
-            $this->updatePath($this->step, 'next', $this->next);
-
-            // start the next path
-            $this->step++;
-            $this->addPath(
-              $this->step,
-              [
-                'step' => $this->step,
-                'url' => $this->next,
-                'code' => null,
-                'next' => null
-              ]);
-
-            return true;
-        }
-
-        // return false if we get here
-        return false;
-    }
-
-    // get the final URL redirect
-    public function getFinalRedirect(): string
-    {
-        $last = end($this->path);
-        return $last['url'];
-    }
-}
-
-// handle form submissions
-if (isset($_POST['url']))
-{
-    // check that we got a valid URL
-    $url = (filter_var(trim($_POST['url']), FILTER_VALIDATE_URL))
-         ? trim($_POST['url'])
-         : false;
-
-    // if so, start up the redirect checks
-    if ($url)
-    {
-        // make a request for this url and add to the path
-        $request = new RedirectCheck($url);
-        $code = '';
-
-        do {
-            // set the URL
-            $request->url = $url;
-
-            // make the curl request and update the path
-            $request->getHttpCode();
-
-            // end on an error
-            if ($request->error)
-            {
-                break;
-            }
-
-            // if we have a redirect to follow, update our working $url
-            $url = ($request->next) ? $request->next : false;
-
-            // update our code
-            $code = ($request->code) ? $request->code : false;
-
-        } while ($code != 200);
-    }
-}
+include('class.php');
 ?>
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -192,7 +11,7 @@ if (isset($_POST['url']))
 <body>
   <header>
     <menu>
-      <h1>Redirect Checker</h1>
+      <h1>Follow <span>URL Redirect Checker</span></h1>
       <nav>
         <a href="/"><span>Check a new URL</span></a>
       </nav>
@@ -325,9 +144,78 @@ else
         <summary>
           Successful (<code>2XX</code>&ndash;<code>299</code>)
         </summary>
-        <p>
-          200
-        </p>
+        <dl>
+          <dt>
+            <label for="200">
+              <code>200</code> OK
+            </label>
+          </dt>
+          <input type="checkbox" id="200">
+          <dd>The request succeeded.</dd>
+          <dt>
+            <label for="201">
+              <code>201</code> Created
+            </label>
+          </dt>
+          <input type="checkbox" id="201">
+          <dd>The request succeeded, and a new resource was created as a result.</dd>
+          <dt>
+            <label for="202">
+              <code>202</code> Accepted
+            </label>
+          </dt>
+          <input type="checkbox" id="202">
+          <dd>The request has been received but not yet acted upon.</dd>
+          <dt>
+            <label for="203">
+              <code>203</code> Non-Authoritative Information
+            </label>
+          </dt>
+          <input type="checkbox" id="203">
+          <dd>Typically for mirrors of original resources, the returned metadata is not exactly the same as is available from the origin server but is collected from a local or a third-party copy.</dd>
+          <dt>
+            <label for="204">
+              <code>204</code> No Content
+            </label>
+          </dt>
+          <input type="checkbox" id="204">
+          <dd>There is no content to send for this request, but the headers may be useful.</dd>
+          <dt>
+            <label for="205">
+              <code>205</code> Reset Content
+            </label>
+          </dt>
+          <input type="checkbox" id="205">
+          <dd>Tells the user agent to reset the document which sent this request.</dd>
+          <dt>
+            <label for="206">
+              <code>206</code> Partial Content
+            </label>
+          </dt>
+          <input type="checkbox" id="206">
+          <dd>Only part of a resource is sent in response to the <code>Range</code> header.</dd>
+          <dt>
+            <label for="207">
+              <code>207</code> Multi-Status
+            </label>
+          </dt>
+          <input type="checkbox" id="207">
+          <dd>Conveys information about multiple resources, for situations where multiple status codes might be appropriate.</dd>
+          <dt>
+            <label for="208">
+              <code>208</code> Already Reported (WebDAV)
+            </label>
+          </dt>
+          <input type="checkbox" id="208">
+          <dd>Used inside a <code>&lt;dav:propstat&gt;</code> response element to limit repetition.</dd>
+          <dt>
+            <label for="226">
+              <code>226</code> IM Used
+            </label>
+          </dt>
+          <input type="checkbox" id="226">
+          <dd>For <code>HTTP Delta encoding</code> when the server has fullfilled a <code>GET</code> request and the response is from 1+ instance manipulations.</dd>
+        </dl>
       </details>
       <details>
         <summary>
