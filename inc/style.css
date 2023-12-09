@@ -116,6 +116,16 @@ button[type="submit"]:hover {
   background-color: #f0eded;
 }
 
+address {
+    display: flex;
+    align-self: stretch;
+    align-items: center;
+    justify-content: center;
+    font-style: normal;
+    padding: 0.5rem 0;
+    background: #ffdee3;
+}
+
 main {
     align-items: center;
     align-self: stretch;
@@ -252,12 +262,20 @@ td {
   vertical-align: top;
   word-wrap: anywhere;
 }
+td:first-child {
+    text-align: center;
+}
 td:nth-child(2) {
     line-height: 1.5rem;
     padding: 0.8rem 1rem;
+    width: 100%;
 }
 td:nth-child(2) a:hover {
     text-decoration-color: transparent;
+}
+td:nth-child(4) {
+    text-align: center;
+    padding-right: 1.5rem;
 }
 td b {
     border: 1px solid #aaa;
@@ -271,9 +289,16 @@ td b {
     padding: 0 0.25rem;
     transition: border-color 150ms ease-in-out, color 150ms ease-in-out;
 }
+td b i {
+    display: inline-block;
+    transition: transform 150ms ease-in-out;
+}
 td:nth-child(2) a:hover b {
     border-color: #1a1a1a;
     color: #1a1a1a;
+}
+td:nth-child(2) a:hover b i {
+    transform: rotate(45deg);
 }
 tbody tr:nth-child(odd) td {
   background-color: #fff;

@@ -84,9 +84,17 @@ class Follow
             {
                 $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
                 $this->code = ($code) ? $code : 0;
-                if ($code == 200) {
-                  $this->updatePath($this->step, 'code', $this->code);
-                  return true;
+
+                // handle certain codes specifically
+                switch ($code)
+                {
+                    case 200:
+                        $this->updatePath($this->step, 'code', $this->code);
+                        return true;
+                    case 404:
+                        $this->updatePath($this->step, 'code', $this->code);
+                        $this->setError(['type' => 'code', 'message' => 'URL returned a 404 error response.']);
+                        return true;
                 }
             }
             else

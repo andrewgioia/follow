@@ -24,6 +24,7 @@ if (isset($_POST['url']))
             // end on an error
             if ($request->error)
             {
+                $error = $request->error;
                 break;
             }
 
@@ -33,7 +34,7 @@ if (isset($_POST['url']))
             // update our code
             $code = ($request->code) ? $request->code : false;
 
-        } while ($code != 200);
+        } while (substr($code, 0, 1) != 2);
     }
     else
     {
