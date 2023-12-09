@@ -3,7 +3,7 @@ class Follow
 {
     // constants
     const USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36";
-    const ERROR_CURL_INIT = "Couldn't initialize a cURL handle";
+    const ERROR_CURL_INIT = "Couldn't initialize a curl handle";
     const ERROR_CURL_CODE = "Could not curl_getinfo the HTTP code";
     const ERROR_CURL_REDIRECT = "Could not curl_getinfo the redirect URL";
 

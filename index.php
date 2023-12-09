@@ -86,7 +86,7 @@ else
             Trace a URL's redirects
         </h2>
         <p>
-            Enter a URL in the search box above to derive the final resolved URL after all redirects. The script runs recursive cURL requests until we get a <code>200</code> status code. This is helpful to get around link tracking or original URLs that Pi-hole outright blocks (like email links).
+            Enter a URL in the search box above to derive the final resolved URL after all redirects. The script runs recursive curl requests until we get a <code>200</code> status code. This is helpful to get around link tracking or original URLs that Pi-hole outright blocks (like email links).
         </p>
         <p>
             I used to use <a href=\"https://wheregoes.com\">wheregoes.com</a> which is a good, reliable service, but decided to roll my own for privacy reasons. Absolutely nothing is logged as all URL searches are via POST and that's not currently included in my nginx logs.
@@ -98,7 +98,7 @@ else
             User agent
         </p>
         <p>
-            Other cURL settings
+            Other curl settings
         </p>
     </article>
   ";
