@@ -1,13 +1,13 @@
 <?php
-include('class.php');
-include('search.php');
-include('codes.php');
+include('inc/class.php');
+include('inc/search.php');
+include('inc/codes.php');
 ?>
 <!DOCTYPE html>
 <html>
 <head>
     <title>Redirect Checker</title>
-    <link rel="stylesheet" type="text/css" href="style.css" />
+    <link rel="stylesheet" type="text/css" href="inc/style.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 </head>
 <body>
