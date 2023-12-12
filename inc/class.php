@@ -8,13 +8,14 @@ class Follow
     const ERROR_CURL_REDIRECT = "Could not curl_getinfo the redirect URL";
 
     // properties
-    public string $url;
-    public string $next;
     public int $code;
     public int $step;
     public bool $redirect;
     public array $path;
     public array $error;
+    public array $headers;
+    public string $url;
+    public string $next;
 
     // constructor
     public function __construct(string $url)
@@ -25,10 +26,12 @@ class Follow
         $this->step = 1;
         $this->redirect = false;
         $this->error = [];
+        $this->headers = [];
         $this->path[$this->step] = [
           'step' => $this->step,
           'url' => $this->url,
           'code' => null,
+          'headers' => [],
           'next' => null ];
     }
 
@@ -45,7 +48,7 @@ class Follow
     }
 
     // update a path entry
-    public function updatePath(int $step, string $key, string $value): void
+    public function updatePath(int $step, string $key, $value): void
     {
         $this->path[$step][$key] = $value;
     }
@@ -60,7 +63,7 @@ class Follow
             return false;
         }
 
-        // set request headers and execute
+        // set request header options
         $response = curl_setopt($ch, CURLOPT_URL, $this->url);
         $response = curl_setopt($ch, CURLOPT_HEADER, true); // enable this for debugging
         $response = curl_setopt($ch, CURLOPT_HTTPGET, true); // redundant but making sure it's a GET
@@ -69,6 +72,31 @@ class Follow
         $response = curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); // return output instead of going to screen
         $response = curl_setopt($ch, CURLOPT_TIMEOUT, 60);
         $response = curl_setopt($ch, CURLOPT_USERAGENT, self::USER_AGENT);
+
+        // save response header to $header variable
+        $headers = [];
+        curl_setopt(
+            $ch,
+            CURLOPT_HEADERFUNCTION,
+            function($curl, $header) use (&$headers)
+            {
+                $len = strlen($header);
+                $header = explode(':', $header, 2);
+
+                // ignore invalid headers
+                if (count($header) < 2) {
+                    return $len;
+                }
+
+                // save the header formatted
+                $headers[strtolower(trim($header[0]))][] = trim($header[1]);
+
+                // return the header length
+                return $len;
+            }
+        );
+
+        // execute the curl handle
         $response = curl_exec($ch);
 
         // check for a response
@@ -79,6 +107,10 @@ class Follow
         }
         else
         {
+            // save the response headers to the path entry
+            $this->headers = $headers;
+            $this->updatePath($this->step, 'headers', $headers);
+
             // get the http status code
             if (curl_getinfo($ch, CURLINFO_HTTP_CODE))
             {
@@ -132,6 +164,7 @@ class Follow
                 'step' => $this->step,
                 'url' => $this->next,
                 'code' => null,
+                'header' => '',
                 'next' => null
               ]);
 

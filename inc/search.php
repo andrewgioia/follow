@@ -34,7 +34,7 @@ if (isset($_POST['url']))
             // update our code
             $code = ($request->code) ? $request->code : false;
 
-        } while (substr($code, 0, 1) != 2);
+        } while (substr($code, 0, 1) == 3); // continue while we have a 3XX code
     }
     else
     {

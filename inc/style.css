@@ -47,9 +47,20 @@ a:hover {
   color: #000;
   text-decoration-color: #000;
 }
+nav {
+    align-items: center;
+    display: flex;
+    gap: 1.5rem;
+}
 nav a {
-  font-size: 1.1rem;
-  line-height: 1.6rem;
+    align-items: center;
+    display: inline-flex;
+    font-size: 1.1rem;
+    line-height: 1.6rem;
+}
+nav svg {
+    height: 1.5rem;
+    width: 1.5rem;
 }
 
 h1 {
@@ -208,7 +219,7 @@ details[open] + details {
 }
 
 code {
-    font-family: Menlo, monospace;
+    font-family: Menlo, 'Berkeley Mono', Hack, monospace;
     font-size: 0.9rem;
     background: #fff;
     padding: 0.1rem 0.2rem;
@@ -255,6 +266,12 @@ th {
   text-transform: uppercase;
   text-align: left;
 }
+th:first-child {
+    padding-left: 3rem;
+}
+tr {
+    position: relative;
+}
 td {
   background-color: #fafafa;
   border-bottom: 1px solid #1a1a1a;
@@ -263,17 +280,20 @@ td {
   word-wrap: anywhere;
 }
 td:first-child {
-    text-align: center;
+    width: 0;
 }
 td:nth-child(2) {
+    text-align: center;
+}
+td:nth-child(3) {
     line-height: 1.5rem;
     padding: 0.8rem 1rem;
     width: 100%;
 }
-td:nth-child(2) a:hover {
+td:nth-child(3) a:hover {
     text-decoration-color: transparent;
 }
-td:nth-child(4) {
+td:nth-child(5) {
     text-align: center;
     padding-right: 1.5rem;
 }
@@ -293,11 +313,11 @@ td b i {
     display: inline-block;
     transition: transform 150ms ease-in-out;
 }
-td:nth-child(2) a:hover b {
+td:nth-child(3) a:hover b {
     border-color: #1a1a1a;
     color: #1a1a1a;
 }
-td:nth-child(2) a:hover b i {
+td:nth-child(3) a:hover b i {
     transform: rotate(45deg);
 }
 tbody tr:nth-child(odd) td {
@@ -306,6 +326,59 @@ tbody tr:nth-child(odd) td {
 tbody td:last-child {
     padding-left: 0;
     width: 1rem;
+}
+td label {
+    cursor: pointer;
+    left: 1.25rem;
+    position: absolute;
+    top: 0.85rem;
+    transition: transform 150ms ease-in-out;
+}
+td label i {
+    font-size: 1.25rem;
+    font-style: normal;
+    line-height: 1rem;
+}
+section {
+    display: flex;
+    max-height: 0;
+    overflow: hidden;
+    flex-direction: column;
+    transition: max-height 200ms ease;
+}
+hgroup {
+    display: flex;
+    flex-direction: column;
+
+    margin-bottom: 0.5rem;
+}
+section hgroup:first-of-type {
+    padding-top: 1rem;
+}
+td input[type="checkbox"] {
+    display: none;
+}
+td input[type="checkbox"]:checked + section {
+    max-height: 100rem;
+}
+td input[type="checkbox"]:checked + section > label {
+    transform: rotate(90deg);
+}
+q {
+    color: #666;
+    font-size: 0.8rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+q::before,
+q::after {
+    content: '';
+}
+mark {
+    background: none;
+    font-family: Menlo, 'Berkeley Mono', Hack, monospace;
+    font-size: 0.9rem;
 }
 caption {
   caption-side: bottom;
