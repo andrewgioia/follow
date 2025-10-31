@@ -29,8 +29,10 @@ include('inc/codes.php');
             </nav>
         </menu>
         <form method="post" action="/" type="application/x-www-form-urlencoded">
-            <input type="url" value="<?php echo (isset($url)) ? $url : ''; ?>" placeholder="URL to check..." name="url">
-            <button type="submit">Check</button>
+            <input type="url" value="<?php echo (isset($url)) ? $url : ''; ?>" placeholder="URL to check..." name="url" autofocus>
+            <button type="submit">
+                <span>Check </span>&rarr;
+            </button>
         </form>
     </header>
 
