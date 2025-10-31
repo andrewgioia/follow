@@ -1,19 +1,26 @@
 <?php
+
 // handle form submissions
-if (isset($_POST['url']))
+if (isset($_POST['url']) || isset($_GET['url']))
 {
+    // get the correct url
+    $url = $_POST['url'] ?? $_GET['url'];
+
     // check that we got a valid URL
-    $url = (filter_var(trim($_POST['url']), FILTER_VALIDATE_URL))
-         ? trim($_POST['url'])
+    $url = (filter_var(trim($url, FILTER_VALIDATE_URL)))
+         ? trim($url)
          : false;
 
     // if so, start up the redirect checks
     if ($url)
     {
-        // make a request for this url and add to the path
+        // make a request for this url and add to the path, and make sure we don't go too long
         $request = new Follow($url);
         $code = '';
+        $hops = 0;
+        $max = 10;
 
+        // keep making more requests until we get a 3XX
         do {
             // set the URL
             $request->url = $url;
@@ -29,12 +36,22 @@ if (isset($_POST['url']))
             }
 
             // if we have a redirect to follow, update our working $url
-            $url = ($request->next) ? $request->next : false;
+            $url = $request->next ?? false;
 
             // update our code
-            $code = ($request->code) ? $request->code : false;
+            $code = $request->code ?? false;
 
-        } while (substr($code, 0, 1) == 3); // continue while we have a 3XX code
+            // increment our number of requests
+            $hops++;
+
+        } while ($hops < $max && $code && substr((string) $code, 0, 1) === '3'); // continue while we have a 3XX code
+
+        // if we got a GET to automatically redirect to the url, do that now
+        if (isset($_GET['go']) && $url)
+        {
+            header("Location: ".$url);
+            exit;
+        }
     }
     else
     {

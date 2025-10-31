@@ -159,14 +159,14 @@ class Follow
             // start the next path
             $this->step++;
             $this->addPath(
-              $this->step,
-              [
-                'step' => $this->step,
-                'url' => $this->next,
-                'code' => null,
-                'header' => '',
-                'next' => null
-              ]);
+                $this->step,
+                [
+                    'step' => $this->step,
+                    'url' => $this->next,
+                    'code' => null,
+                    'header' => '',
+                    'next' => null
+                ]);
 
             return true;
         }
