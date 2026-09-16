@@ -27,12 +27,7 @@ class Follow
         $this->redirect = false;
         $this->error = [];
         $this->headers = [];
-        $this->path[$this->step] = [
-          'step' => $this->step,
-          'url' => $this->url,
-          'code' => null,
-          'headers' => [],
-          'next' => null ];
+        $this->path = [];
     }
 
     // create an error message
@@ -41,145 +36,124 @@ class Follow
         $this->error = $error;
     }
 
-    // add an entry to the URL path
-    private function addPath(int $step, array $path): void
-    {
-        $this->path[$step] = $path;
-    }
-
     // update a path entry
     public function updatePath(int $step, string $key, $value): void
     {
         $this->path[$step][$key] = $value;
     }
 
-    // create a curl request for a URL
-    public function getHttpCode()
+    // Make exactly one request; the caller follows redirects and HTTP fallbacks.
+    public function getHttpCode(): bool
     {
-        // initate curl request
-        $ch = curl_init();
-        if (!$ch) {
-            $this->setError = ['type' => 'curl', 'message' => self::ERROR_CURL_INIT];
+        $this->code = 0;
+        $this->next = '';
+        $this->redirect = false;
+        $this->error = [];
+        $this->headers = [];
+        $this->step = count($this->path) + 1;
+        $this->path[$this->step] = [
+            'step' => $this->step,
+            'url' => $this->url,
+            'code' => null,
+            'headers' => [],
+            'next' => '',
+            'fallback' => false,
+            'error' => ''
+        ];
+
+        $result = $this->request();
+        $this->code = $result['code'];
+        $this->headers = $result['headers'];
+        $this->updatePath($this->step, 'code', $this->code ?: null);
+        $this->updatePath($this->step, 'headers', $this->headers);
+
+        if ($result['error'] !== '')
+        {
+            $this->updatePath($this->step, 'error', $result['error']);
+            // Only retry transport failures before an HTTP response, not 4XX/5XX.
+            if ($result['retryable'] && $this->code === 0 &&
+                strtolower((string) parse_url($this->url, PHP_URL_SCHEME)) === 'https')
+            {
+                // Preserve the encoded path/query verbatim. Default HTTPS port
+                // 443 becomes the default HTTP port; keep custom ports intact.
+                $this->next = preg_replace('~^https://~i', 'http://', $this->url);
+                $this->next = preg_replace('~^(http://[^/?#]+):443(?=[/?#]|$)~i', '$1', $this->next);
+                $this->updatePath($this->step, 'next', $this->next);
+                $this->updatePath($this->step, 'fallback', true);
+                return true;
+            }
+            $this->setError(['type' => 'curl', 'message' => $result['error']]);
             return false;
         }
 
-        // set request header options
-        $response = curl_setopt($ch, CURLOPT_URL, $this->url);
-        $response = curl_setopt($ch, CURLOPT_HEADER, true); // enable this for debugging
-        $response = curl_setopt($ch, CURLOPT_HTTPGET, true); // redundant but making sure it's a GET
-        $response = curl_setopt($ch, CURLOPT_NOBODY, false); // settings this to true was returning 405s
-        $response = curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
-        $response = curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); // return output instead of going to screen
-        $response = curl_setopt($ch, CURLOPT_TIMEOUT, 60);
-        $response = curl_setopt($ch, CURLOPT_USERAGENT, self::USER_AGENT);
+        if ($this->code >= 300 && $this->code < 400 && $result['next'] !== '')
+        {
+            $this->next = $result['next'];
+            $this->redirect = true;
+            $this->updatePath($this->step, 'next', $this->next);
+        }
+        elseif ($this->code < 200 || $this->code >= 300)
+        {
+            $this->setError(['type' => 'code', 'message' => 'URL returned a '.$this->code.' response without a redirect to follow.']);
+        }
 
-        // save response header to $header variable
+        return true;
+    }
+
+    // Keep transport separate so redirect/fallback behavior can be tested offline.
+    protected function request(): array
+    {
+        $ch = curl_init();
+        if ($ch === false) {
+            return ['code' => 0, 'headers' => [], 'next' => '',
+                'error' => self::ERROR_CURL_INIT, 'retryable' => false];
+        }
+
         $headers = [];
-        curl_setopt(
-            $ch,
-            CURLOPT_HEADERFUNCTION,
-            function($curl, $header) use (&$headers)
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $this->url,
+            CURLOPT_HTTPGET => true,
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 60,
+            CURLOPT_USERAGENT => self::USER_AGENT,
+            CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+            CURLOPT_HEADERFUNCTION => function($curl, $header) use (&$headers)
             {
                 $len = strlen($header);
-                $header = explode(':', $header, 2);
-
-                // ignore invalid headers
-                if (count($header) < 2) {
-                    return $len;
+                // Start fresh after interim responses (e.g. 100 Continue).
+                if (stripos($header, 'HTTP/') === 0) {
+                    $headers = [];
                 }
-
-                // save the header formatted
-                $headers[strtolower(trim($header[0]))][] = trim($header[1]);
-
-                // return the header length
+                $parts = explode(':', $header, 2);
+                if (count($parts) === 2) {
+                    $headers[strtolower(trim($parts[0]))][] = trim($parts[1]);
+                }
                 return $len;
             }
-        );
+        ]);
 
-        // execute the curl handle
         $response = curl_exec($ch);
-
-        // check for a response
-        if (empty($response))
-        {
-            $this->setError(['type' => 'curl', 'message' => curl_error($ch)]);
-            curl_close($ch);
-        }
-        else
-        {
-            // save the response headers to the path entry
-            $this->headers = $headers;
-            $this->updatePath($this->step, 'headers', $headers);
-
-            // get the http status code
-            if (curl_getinfo($ch, CURLINFO_HTTP_CODE))
-            {
-                $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                $this->code = ($code) ? $code : 0;
-
-                // handle certain codes specifically
-                switch ($code)
-                {
-                    case 200:
-                        $this->updatePath($this->step, 'code', $this->code);
-                        return true;
-                    case 404:
-                        $this->updatePath($this->step, 'code', $this->code);
-                        $this->setError(['type' => 'code', 'message' => 'URL returned a 404 error response.']);
-                        return true;
-                }
-            }
-            else
-            {
-                $this->code = 0;
-                $this->setError(['type' => 'curl', 'message' => self::ERROR_CURL_CODE]);
-                return false;
-            }
-
-            // get any redirect url to follow next
-            if (curl_getinfo($ch, CURLINFO_REDIRECT_URL))
-            {
-                $next = curl_getinfo($ch, CURLINFO_REDIRECT_URL);
-                $this->redirect = ($next) ? true : false;
-                $this->next = ($next) ? $next : '';
-            }
-            else
-            {
-                $this->redirect = false;
-                $this->next = '';
-            }
-
-            // close the session
-            curl_close($ch);
-
-            // update the current path
-            $this->updatePath($this->step, 'code', $this->code);
-            $this->updatePath($this->step, 'next', $this->next);
-
-            // start the next path
-            $this->step++;
-            $this->addPath(
-                $this->step,
-                [
-                    'step' => $this->step,
-                    'url' => $this->next,
-                    'code' => null,
-                    'header' => '',
-                    'next' => null
-                ]);
-
-            return true;
-        }
-
-        // return false if we get here
-        return false;
+        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $result = [
+            'code' => $code,
+            'headers' => $headers,
+            'next' => (string) curl_getinfo($ch, CURLINFO_REDIRECT_URL),
+            'error' => $response === false ? curl_error($ch) : ($code === 0 ? self::ERROR_CURL_CODE : ''),
+            'retryable' => $response === false
+        ];
+        // PHP 8 releases the handle when its last reference goes away.
+        unset($ch);
+        return $result;
     }
 
     // get the final URL redirect
     public function getFinalRedirect(): string
     {
         $last = end($this->path);
-        return $last['url'];
+        return $last ? $last['url'] : $this->url;
     }
 }
 ?>

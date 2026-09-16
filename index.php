@@ -32,7 +32,7 @@ include('inc/codes.php');
             </nav>
         </menu>
         <form method="post" action="/" type="application/x-www-form-urlencoded">
-            <input type="url" value="<?php echo (isset($url)) ? $url : ''; ?>" placeholder="URL to check..." name="url" autofocus>
+            <input type="url" value="<?php echo (isset($url)) ? htmlspecialchars($url, ENT_QUOTES, 'UTF-8') : ''; ?>" placeholder="URL to check..." name="url" autofocus>
             <button type="submit">
                 <span>Check </span>&rarr;
             </button>
@@ -45,7 +45,7 @@ if (isset($error))
 {
     echo "
     <address>
-        ".$error['message']."
+        ".htmlspecialchars($error['message'], ENT_QUOTES, 'UTF-8')."
     </address>";
 }
 ?>
@@ -55,15 +55,18 @@ if (isset($error))
 // if we have a valid request object
 if (isset($request) && count($request->path) > 0)
 {
-    $steps = count($request->path) - 1;
-    $count = ($steps == 1) ? 'once' : $steps.' times';
+    $count = count($request->path);
+    $requestLabel = $count === 1 ? 'request' : 'requests';
+    $heading = isset($error) ? 'Last attempted URL' : 'Final destination';
+    $status = $request->code ? (string) $request->code : 'No response';
+    $final = htmlspecialchars($request->getFinalRedirect(), ENT_QUOTES, 'UTF-8');
     echo "
         <article>
-            <h2>Final destination</h2>
-            <p>Your URL returned a <code><strong>".$request->code."</strong></code> status code and redirected ".$count.":</p>
+            <h2>".$heading."</h2>
+            <p>Trace made ".$count." ".$requestLabel.", including any HTTP retries. Last HTTP status: <code><strong>".$status."</strong></code>.</p>
             <p class=\"final\">
-                <a href=\"".$request->getFinalRedirect()."\" target=\"blank\">
-                    ".$request->getFinalRedirect()."
+                <a href=\"".$final."\" target=\"blank\">
+                    ".$final."
                 </a>
             </p>
             <h3>Redirect trace</h3>
@@ -79,16 +82,24 @@ if (isset($request) && count($request->path) > 0)
     foreach ($request->path as $step)
     {
         $item = $step['step'];
-        $url =  $step['url'];
-        $code = $step['code'];
+        $stepUrl = htmlspecialchars($step['url'], ENT_QUOTES, 'UTF-8');
+        $code = $step['code'] ?? '—';
         $headers = $step['headers'];
-        $next = ($step['next']) ? '↩︎' : ((isset($error)) ? 'x' : '✓');
+        $next = (isset($error) && $item === $request->step) ? 'x' : ($step['next'] ? '↩︎' : '✓');
         echo "
                     <tr>
                         <td>&nbsp;</td>
                         <td><span>".$item."</span></td>
                         <td>
-                            <div>".$url." <a href=\"".$url."\" target=\"blank\"><b><i>↗︎</i></b></a></div>";
+                            <div>".$stepUrl." <a href=\"".$stepUrl."\" target=\"blank\"><b><i>↗︎</i></b></a></div>";
+        if ($step['error'] !== '')
+        {
+            echo '<p>'.htmlspecialchars($step['error'], ENT_QUOTES, 'UTF-8');
+            if ($step['fallback']) {
+                echo ' — HTTP fallback (unencrypted).';
+            }
+            echo '</p>';
+        }
         if (is_array($headers) && count($headers) > 0)
         {
             echo "
@@ -99,7 +110,7 @@ if (isset($request) && count($request->path) > 0)
             {
                 echo "
                                 <hgroup>
-                                    <q>".$hkey."</q><mark>".$hval[0]."</mark>
+                                    <q>".htmlspecialchars($hkey, ENT_QUOTES, 'UTF-8')."</q><mark>".htmlspecialchars($hval[0], ENT_QUOTES, 'UTF-8')."</mark>
                                 </hgroup>";
             }
             echo "
@@ -127,19 +138,10 @@ else
                 Trace a URL's redirects
             </h2>
             <p>
-                Enter a URL in the search box above to derive the final resolved URL after all redirects. The script runs recursive curl requests until we get a <code>200</code> status code. This is helpful to get around link tracking or original URLs that Pi-hole outright blocks (like email links).
+                Enter a URL in the search box above to derive the final resolved URL after all redirects. The script follows redirects until we get a <code>2XX</code> status code. If HTTPS fails before a response arrives, it retries that URL over unencrypted HTTP. This is helpful to get around link tracking or original URLs that Pi-hole outright blocks (like email links).
             </p>
             <p>
                 I used to use <a href=\"https://wheregoes.com\">wheregoes.com</a> which is a good, reliable service, but decided to roll my own for privacy reasons. Absolutely nothing is logged as all URL searches are via POST and that's not currently included in my nginx logs.
-            </p>
-            <h3>
-                Technical details
-            </h3>
-            <p>
-                User agent
-            </p>
-            <p>
-                Other curl settings
             </p>
         </article>";
 }

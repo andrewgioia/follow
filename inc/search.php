@@ -3,53 +3,43 @@
 // handle form submissions
 if (isset($_POST['url']) || isset($_GET['url']))
 {
-    // get the correct url
     $url = $_POST['url'] ?? $_GET['url'];
+    $url = is_string($url) ? trim($url) : '';
+    $valid = filter_var($url, FILTER_VALIDATE_URL) &&
+        in_array(strtolower((string) parse_url($url, PHP_URL_SCHEME)), ['http', 'https'], true);
 
-    // check that we got a valid URL
-    $url = (filter_var(trim($url, FILTER_VALIDATE_URL)))
-         ? trim($url)
-         : false;
-
-    // if so, start up the redirect checks
-    if ($url)
+    if ($valid)
     {
-        // make a request for this url and add to the path, and make sure we don't go too long
         $request = new Follow($url);
-        $code = '';
-        $hops = 0;
         $max = 10;
+        $visited = [];
 
-        // keep making more requests until we get a 3XX
-        do {
-            // set the URL
-            $request->url = $url;
-
-            // make the curl request and update the path
+        for ($hops = 0; $hops < $max; $hops++)
+        {
+            $visited[$request->url] = true;
             $request->getHttpCode();
-
-            // end on an error
-            if ($request->error)
-            {
-                $error = $request->error;
+            if ($request->error || $request->next === '') {
                 break;
             }
+            if (isset($visited[$request->next])) {
+                $request->error = ['type' => 'redirect', 'message' => 'Redirect loop detected (including HTTP fallbacks).'];
+                break;
+            }
+            if ($hops === $max - 1) {
+                $request->error = ['type' => 'redirect', 'message' => 'Stopped after '.$max.' requests (including HTTP fallbacks).'];
+                break;
+            }
+            $request->url = $request->next;
+        }
 
-            // if we have a redirect to follow, update our working $url
-            $url = $request->next ?? false;
+        if ($request->error) {
+            $error = $request->error;
+        }
 
-            // update our code
-            $code = $request->code ?? false;
-
-            // increment our number of requests
-            $hops++;
-
-        } while ($hops < $max && $code && substr((string) $code, 0, 1) === '3'); // continue while we have a 3XX code
-
-        // if we got a GET to automatically redirect to the url, do that now
-        if (isset($_GET['go']) && $url)
+        // Only send the visitor to a successfully resolved destination.
+        if (isset($_GET['go']) && !$request->error && $request->code >= 200 && $request->code < 300)
         {
-            header("Location: ".$url);
+            header('Location: '.$request->getFinalRedirect());
             exit;
         }
     }
@@ -57,7 +47,7 @@ if (isset($_POST['url']) || isset($_GET['url']))
     {
         $error = [
             'type' => 'search',
-            'message' => 'There was an issue with URL you searched. Make sure it\'s a well-formed URL.'
+            'message' => 'There was an issue with the URL you searched. Use a well-formed HTTP or HTTPS URL.'
         ];
     }
 }
