@@ -5,7 +5,13 @@ URL redirect checker. Trace the full redirect path (if one exists) for a given U
 
 ## Technical details
 
-We're just making recursive curl requests, logging their HTTP response status code and redirect URL (if any), until we get to a `2XX` code.
+We make curl requests one at a time, logging each HTTP response status code and redirect URL (if any), until we get to a `2XX` code.
+
+If an HTTPS request fails before receiving an HTTP response (for example, a certificate hostname mismatch, TLS handshake failure, or connection failure), Follow retries the same URL over **unencrypted HTTP**. Certificate verification stays enabled for HTTPS. The trace shows the original error and the HTTP fallback as separate attempts. HTTP error responses such as `404` or `500` do not trigger a fallback.
+
+The fallback preserves the encoded path and query string. An explicit port `443` is removed to use HTTP's default port `80`; other explicit ports are preserved. Loops are detected, and the trace stops after at most 10 requests, including fallback attempts.
+
+Run the offline regression checks with `php tests/follow.php`.
 
 There are some additional advanced curl setting in the pipeline, like changing the user agent or request method. 
 
